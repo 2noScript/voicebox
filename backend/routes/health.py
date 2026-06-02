@@ -5,7 +5,6 @@ import os
 import signal
 from pathlib import Path
 
-import torch
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
@@ -62,65 +61,10 @@ async def health():
     tts_model = tts.get_tts_model()
     backend_type = get_backend_type()
 
-    has_cuda = torch.cuda.is_available()
-    has_mps = hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
-
-    has_xpu = False
-    xpu_name = None
-    try:
-        import intel_extension_for_pytorch as ipex  # noqa: F401 -- side-effect import enables XPU
-
-        if hasattr(torch, "xpu") and torch.xpu.is_available():
-            has_xpu = True
-            try:
-                xpu_name = torch.xpu.get_device_name(0)
-            except Exception:
-                xpu_name = "Intel GPU"
-    except ImportError:
-        pass
-
-    has_directml = False
-    directml_name = None
-    try:
-        import torch_directml
-
-        if torch_directml.device_count() > 0:
-            has_directml = True
-            try:
-                directml_name = torch_directml.device_name(0)
-            except Exception:
-                directml_name = "DirectML GPU"
-    except ImportError:
-        pass
-
+    gpu_type = "Metal (Apple Silicon via MLX)" if backend_type == "mlx" else None
+    gpu_available = backend_type == "mlx"
     gpu_compat_warning = None
-    if has_cuda:
-        from ..backends.base import check_cuda_compatibility
-
-        _compatible, gpu_compat_warning = check_cuda_compatibility()
-
-    gpu_available = has_cuda or has_mps or has_xpu or has_directml or backend_type == "mlx"
-
-    gpu_type = None
-    if has_cuda:
-        gpu_type = f"CUDA ({torch.cuda.get_device_name(0)})"
-    elif backend_type == "mlx":
-        gpu_type = "Metal (Apple Silicon via MLX)"
-    elif has_mps:
-        gpu_type = "MPS (Apple Silicon)"
-    elif has_xpu:
-        gpu_type = f"XPU ({xpu_name})"
-    elif has_directml:
-        gpu_type = f"DirectML ({directml_name})"
-
     vram_used = None
-    if has_cuda:
-        vram_used = torch.cuda.memory_allocated() / 1024 / 1024
-    elif has_xpu:
-        try:
-            vram_used = torch.xpu.memory_allocated() / 1024 / 1024
-        except Exception:
-            pass  # memory_allocated() may not be available on all IPEX versions
 
     model_loaded = False
     model_size = None
@@ -173,10 +117,7 @@ async def health():
         gpu_type=gpu_type,
         vram_used_mb=vram_used,
         backend_type=backend_type,
-        backend_variant=os.environ.get(
-            "VOICEBOX_BACKEND_VARIANT",
-            "cuda" if torch.cuda.is_available() else ("xpu" if has_xpu else "cpu"),
-        ),
+        backend_variant=os.environ.get("VOICEBOX_BACKEND_VARIANT", "cpu"),
         gpu_compatibility_warning=gpu_compat_warning,
     )
 

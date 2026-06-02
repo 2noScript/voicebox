@@ -4,7 +4,7 @@ Voice prompt caching utilities.
 
 import hashlib
 import logging
-import torch
+import pickle
 from pathlib import Path
 from typing import Optional, Union, Dict, Any
 
@@ -19,7 +19,7 @@ def _get_cache_dir() -> Path:
 
 
 # In-memory cache - can store dict (voice prompt) or tensor (legacy)
-_memory_cache: dict[str, Union[torch.Tensor, Dict[str, Any]]] = {}
+_memory_cache: dict[str, Union[Dict[str, Any], Any]] = {}
 
 
 def get_cache_key(audio_path: str, reference_text: str) -> str:
@@ -46,7 +46,7 @@ def get_cache_key(audio_path: str, reference_text: str) -> str:
 
 def get_cached_voice_prompt(
     cache_key: str,
-) -> Optional[Union[torch.Tensor, Dict[str, Any]]]:
+) -> Optional[Union[Dict[str, Any], Any]]:
     """
     Get cached voice prompt if available.
 
@@ -54,7 +54,7 @@ def get_cached_voice_prompt(
         cache_key: Cache key
 
     Returns:
-        Cached voice prompt (dict or tensor) or None
+        Cached voice prompt (dict) or None
     """
     # Check in-memory cache
     if cache_key in _memory_cache:
@@ -64,7 +64,8 @@ def get_cached_voice_prompt(
     cache_file = _get_cache_dir() / f"{cache_key}.prompt"
     if cache_file.exists():
         try:
-            prompt = torch.load(cache_file, weights_only=True)
+            with open(cache_file, "rb") as f:
+                prompt = pickle.load(f)
             _memory_cache[cache_key] = prompt
             return prompt
         except Exception:
@@ -76,21 +77,22 @@ def get_cached_voice_prompt(
 
 def cache_voice_prompt(
     cache_key: str,
-    voice_prompt: Union[torch.Tensor, Dict[str, Any]],
+    voice_prompt: Union[Dict[str, Any], Any],
 ) -> None:
     """
     Cache voice prompt to memory and disk.
 
     Args:
         cache_key: Cache key
-        voice_prompt: Voice prompt (dict or tensor)
+        voice_prompt: Voice prompt (dict)
     """
     # Store in memory
     _memory_cache[cache_key] = voice_prompt
 
-    # Store on disk (torch.save can handle both dicts and tensors)
+    # Store on disk
     cache_file = _get_cache_dir() / f"{cache_key}.prompt"
-    torch.save(voice_prompt, cache_file)
+    with open(cache_file, "wb") as f:
+        pickle.dump(voice_prompt, f)
 
 
 def clear_voice_prompt_cache() -> int:

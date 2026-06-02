@@ -36,13 +36,6 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-# AMD GPU environment variables must be set before torch import
-if not os.environ.get("HSA_OVERRIDE_GFX_VERSION"):
-    os.environ["HSA_OVERRIDE_GFX_VERSION"] = "10.3.0"
-if not os.environ.get("MIOPEN_LOG_LEVEL"):
-    os.environ["MIOPEN_LOG_LEVEL"] = "4"
-
-import torch
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from urllib.parse import quote
@@ -176,38 +169,9 @@ def _mount_frontend(application: FastAPI) -> None:
 
 def _get_gpu_status() -> str:
     """Return a human-readable string describing GPU availability."""
-    backend_type = get_backend_type()
-    if torch.cuda.is_available():
-        from .backends.base import check_cuda_compatibility
-
-        device_name = torch.cuda.get_device_name(0)
-        compatible, _warning = check_cuda_compatibility()
-        is_rocm = hasattr(torch.version, "hip") and torch.version.hip is not None
-        if is_rocm:
-            label = f"ROCm ({device_name})"
-        else:
-            label = f"CUDA ({device_name})"
-        if not compatible:
-            label += " [UNSUPPORTED - see logs]"
-        return label
-    elif backend_type == "mlx":
+    import mlx.core as mx
+    if mx.metal.is_available():
         return "Metal (Apple Silicon via MLX)"
-    elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-        return "MPS (Apple Silicon)"
-
-    # Intel XPU (Arc / Data Center) via IPEX
-    try:
-        import intel_extension_for_pytorch  # noqa: F401
-
-        if hasattr(torch, "xpu") and torch.xpu.is_available():
-            try:
-                xpu_name = torch.xpu.get_device_name(0)
-            except Exception:
-                xpu_name = "Intel GPU"
-            return f"XPU ({xpu_name})"
-    except ImportError:
-        pass
-
     return "None (CPU only)"
 
 
@@ -266,15 +230,8 @@ async def _run_startup(application: FastAPI) -> None:
     logger.info("Backend: %s", backend_type.upper())
     logger.info("GPU: %s", _get_gpu_status())
 
-    from .backends.base import check_cuda_compatibility
-
-    _compatible, _cuda_warning = check_cuda_compatibility()
-    if not _compatible:
-        logger.warning("GPU COMPATIBILITY: %s", _cuda_warning)
-
-    from .services.cuda import check_and_update_cuda_binary
-
-    create_background_task(check_and_update_cuda_binary())
+    import mlx.core as mx
+    logger.info("MLX device: %s", mx.default_device())
 
     try:
         progress_manager = get_progress_manager()

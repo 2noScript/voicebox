@@ -260,16 +260,8 @@ if __name__ == "__main__":
         if args.parent_pid is not None and args.parent_pid <= 0:
             parser.error("--parent-pid must be a positive integer")
 
-        # Detect backend variant from binary name
-        # voicebox-server-cuda → sets VOICEBOX_BACKEND_VARIANT=cuda
-        import os
-        binary_name = os.path.basename(sys.executable).lower()
-        if "cuda" in binary_name:
-            os.environ["VOICEBOX_BACKEND_VARIANT"] = "cuda"
-            logger.info("Backend variant: CUDA")
-        else:
-            os.environ["VOICEBOX_BACKEND_VARIANT"] = "cpu"
-            logger.info("Backend variant: CPU")
+        # Backend variant is always CPU on macOS + MLX
+        os.environ["VOICEBOX_BACKEND_VARIANT"] = "cpu"
 
         # Register parent watchdog to start after server is fully ready
         if args.parent_pid is not None:

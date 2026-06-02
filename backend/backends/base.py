@@ -6,7 +6,6 @@ voice prompt combination, and model loading progress tracking.
 """
 
 import logging
-import platform
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Callable, List, Optional, Tuple
@@ -84,115 +83,21 @@ def get_torch_device(
     allow_mps: bool = False,
     force_cpu_on_mac: bool = False,
 ) -> str:
-    """
-    Detect the best available torch device.
-
-    Args:
-        allow_xpu: Check for Intel XPU (IPEX) support.
-        allow_directml: Check for DirectML (Windows) support.
-        allow_mps: Allow MPS (Apple Silicon). If False, MPS falls back to CPU.
-        force_cpu_on_mac: Force CPU on macOS regardless of GPU availability.
-    """
-    if force_cpu_on_mac and platform.system() == "Darwin":
-        return "cpu"
-
-    import torch
-
-    if torch.cuda.is_available():
-        return "cuda"
-
-    if allow_xpu:
-        try:
-            import intel_extension_for_pytorch  # noqa: F401
-
-            if hasattr(torch, "xpu") and torch.xpu.is_available():
-                return "xpu"
-        except ImportError:
-            pass
-
-    if allow_directml:
-        try:
-            import torch_directml
-
-            if torch_directml.device_count() > 0:
-                return torch_directml.device(0)
-        except ImportError:
-            pass
-
-    if allow_mps:
-        if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-            return "mps"
-
+    """Detect the best available torch device (deprecated — macOS + MLX only)."""
     return "cpu"
 
 
 def check_cuda_compatibility() -> tuple[bool, str | None]:
-    """Check if the installed PyTorch supports the current GPU's compute capability.
-
-    Returns:
-        (compatible, warning_message) — compatible is True if OK or no CUDA GPU,
-        warning_message is a human-readable string if there's a problem.
-    """
-    import torch
-
-    if not torch.cuda.is_available():
-        return True, None
-
-    major, minor = torch.cuda.get_device_capability(0)
-    capability = f"{major}.{minor}"
-    device_name = torch.cuda.get_device_name(0)
-    sm_tag = f"sm_{major}{minor}"
-
-    # torch.cuda._get_arch_list() returns the SM architectures this build
-    # was compiled for (e.g. ["sm_50", "sm_60", ..., "sm_90"]).
-    try:
-        arch_list = torch.cuda._get_arch_list()
-        if arch_list:
-            # Check for both sm_XX and compute_XX (JIT-compiled) entries
-            compute_tag = f"compute_{major}{minor}"
-            if sm_tag not in arch_list and compute_tag not in arch_list:
-                return False, (
-                    f"{device_name} (compute capability {capability} / {sm_tag}) "
-                    f"is not supported by this PyTorch build. "
-                    f"Supported architectures: {', '.join(arch_list)}. "
-                    f"Install PyTorch nightly (cu128) for newer GPU support: "
-                    f"pip install torch --index-url https://download.pytorch.org/whl/nightly/cu128"
-                )
-    except AttributeError:
-        pass
-
+    """Check CUDA GPU compatibility (deprecated — macOS + MLX only)."""
     return True, None
 
 
 def empty_device_cache(device: str) -> None:
-    """
-    Free cached memory on the given device (CUDA or XPU).
-
-    Backends should call this after unloading models so VRAM is returned
-    to the OS.
-    """
-    import torch
-
-    if device == "cuda" and torch.cuda.is_available():
-        torch.cuda.empty_cache()
-    elif device == "xpu" and hasattr(torch, "xpu"):
-        torch.xpu.empty_cache()
+    """Free cached memory (deprecated — macOS + MLX only)."""
 
 
 def manual_seed(seed: int, device: str) -> None:
-    """
-    Set the random seed on both CPU and the active accelerator.
-
-    Covers CUDA and Intel XPU so that generation is reproducible
-    regardless of which GPU backend is in use.
-    """
-    import torch
-
-    torch.manual_seed(seed)
-    if device == "cuda" and torch.cuda.is_available():
-        torch.cuda.manual_seed(seed)
-    elif device == "xpu" and hasattr(torch, "xpu"):
-        torch.xpu.manual_seed(seed)
+    """Set random seed (deprecated — macOS + MLX only)."""
 
 
 async def combine_voice_prompts(
@@ -290,38 +195,4 @@ def model_load_progress(
         tracker_context.__exit__(None, None, None)
 
 
-def patch_chatterbox_f32(model) -> None:
-    """
-    Patch float64 -> float32 dtype mismatches in upstream chatterbox.
 
-    librosa.load returns float64 numpy arrays. Multiple upstream code paths
-    convert these to torch tensors via torch.from_numpy() without casting,
-    then matmul against float32 model weights. This patches the two known
-    entry points:
-
-    1. S3Tokenizer.log_mel_spectrogram — audio tensor hits _mel_filters (f32)
-    2. VoiceEncoder.forward — float64 mel spectrograms hit LSTM weights (f32)
-    """
-    import types
-
-    # Patch S3Tokenizer
-    _tokzr = model.s3gen.tokenizer
-    _orig_log_mel = _tokzr.log_mel_spectrogram.__func__
-
-    def _f32_log_mel(self_tokzr, audio, padding=0):
-        import torch as _torch
-
-        if _torch.is_tensor(audio):
-            audio = audio.float()
-        return _orig_log_mel(self_tokzr, audio, padding)
-
-    _tokzr.log_mel_spectrogram = types.MethodType(_f32_log_mel, _tokzr)
-
-    # Patch VoiceEncoder
-    _ve = model.ve
-    _orig_ve_forward = _ve.forward.__func__
-
-    def _f32_ve_forward(self_ve, mels):
-        return _orig_ve_forward(self_ve, mels.float())
-
-    _ve.forward = types.MethodType(_f32_ve_forward, _ve)

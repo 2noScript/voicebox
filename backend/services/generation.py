@@ -88,13 +88,13 @@ async def run_generation(
 
         # --- Normalize (generate and regenerate always; retry skips) -----
         if normalize or mode == "regenerate":
-            audio = normalize_audio(audio)
+            audio = await asyncio.to_thread(normalize_audio, audio)
 
         duration = len(audio) / sample_rate
 
         # --- Persist audio and update status -----------------------------
         if mode == "generate":
-            final_path = _save_generate(
+            final_path = await _save_generate(
                 generation_id=generation_id,
                 audio=audio,
                 sample_rate=sample_rate,
@@ -103,14 +103,14 @@ async def run_generation(
                 db=bg_db,
             )
         elif mode == "retry":
-            final_path = _save_retry(
+            final_path = await _save_retry(
                 generation_id=generation_id,
                 audio=audio,
                 sample_rate=sample_rate,
                 save_audio=save_audio,
             )
         elif mode == "regenerate":
-            final_path = _save_regenerate(
+            final_path = await _save_regenerate(
                 generation_id=generation_id,
                 version_id=version_id,
                 audio=audio,
@@ -165,7 +165,7 @@ def _notify_speak_end(generation_id: str, *, status: str) -> None:
         pass
 
 
-def _save_generate(
+async def _save_generate(
     *,
     generation_id: str,
     audio,
@@ -182,7 +182,7 @@ def _save_generate(
     from . import versions as versions_mod
 
     clean_audio_path = config.get_generations_dir() / f"{generation_id}.wav"
-    save_audio(audio, str(clean_audio_path), sample_rate)
+    await asyncio.to_thread(save_audio, audio, str(clean_audio_path), sample_rate)
 
     has_effects = effects_chain and any(e.get("enabled", True) for e in effects_chain)
 
@@ -210,9 +210,9 @@ def _save_generate(
                 versions_mod.list_versions(generation_id, db)[0].id, db
             )
         else:
-            processed_audio = apply_effects(audio, sample_rate, effects_chain)
+            processed_audio = await asyncio.to_thread(apply_effects, audio, sample_rate, effects_chain)
             processed_path = config.get_generations_dir() / f"{generation_id}_processed.wav"
-            save_audio(processed_audio, str(processed_path), sample_rate)
+            await asyncio.to_thread(save_audio, processed_audio, str(processed_path), sample_rate)
             final_audio_path = str(processed_path)
             versions_mod.create_version(
                 generation_id=generation_id,
@@ -226,7 +226,7 @@ def _save_generate(
     return config.to_storage_path(final_audio_path)
 
 
-def _save_retry(
+async def _save_retry(
     *,
     generation_id: str,
     audio,
@@ -238,7 +238,7 @@ def _save_retry(
     Returns the audio path.
     """
     audio_path = config.get_generations_dir() / f"{generation_id}.wav"
-    save_audio(audio, str(audio_path), sample_rate)
+    await asyncio.to_thread(save_audio, audio, str(audio_path), sample_rate)
     return config.to_storage_path(audio_path)
 
 
@@ -304,12 +304,12 @@ async def generate_audio_sync(
     )
 
     if normalize:
-        audio = normalize_audio(audio)
+        audio = await asyncio.to_thread(normalize_audio, audio)
 
-    return tts.audio_to_wav_bytes(audio, sample_rate)
+    return await asyncio.to_thread(tts.audio_to_wav_bytes, audio, sample_rate)
 
 
-def _save_regenerate(
+async def _save_regenerate(
     *,
     generation_id: str,
     version_id: Optional[str],
@@ -328,7 +328,7 @@ def _save_regenerate(
 
     suffix = _uuid.uuid4().hex[:8]
     audio_path = config.get_generations_dir() / f"{generation_id}_{suffix}.wav"
-    save_audio(audio, str(audio_path), sample_rate)
+    await asyncio.to_thread(save_audio, audio, str(audio_path), sample_rate)
 
     # Count via DB query rather than list length to avoid TOCTOU race
     from ..database import GenerationVersion as DBGenerationVersion

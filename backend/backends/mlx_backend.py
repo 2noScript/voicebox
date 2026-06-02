@@ -195,6 +195,8 @@ class MLXTTSBackend:
 
         def _generate_sync():
             """Run synchronous generation in thread pool."""
+            import mlx.core as mx
+
             # MLX generate() returns a generator yielding GenerationResult objects
             audio_chunks = []
             sample_rate = 24000
@@ -202,8 +204,6 @@ class MLXTTSBackend:
 
             # Set seed if provided (MLX uses numpy random)
             if seed is not None:
-                import mlx.core as mx
-
                 np.random.seed(seed)
                 mx.random.seed(seed)
 
@@ -218,47 +218,33 @@ class MLXTTSBackend:
                 logger.warning("Regenerating without voice prompt.")
                 ref_audio = None
 
-            # Inference runs with the process's default HF_HUB_OFFLINE
-            # state. Forcing offline here (previously used to avoid lazy
-            # mlx_audio lookups hanging when the network drops mid-inference,
-            # issue #462) regressed online users because libraries make
-            # legitimate metadata calls during generation.
             try:
                 if ref_audio:
-                    # Check if generate accepts ref_audio parameter
                     import inspect
 
                     sig = inspect.signature(self.model.generate)
                     if "ref_audio" in sig.parameters:
-                        # Generate with voice cloning
-                        # Use stream=True to avoid the ICL non-streaming path which
-                        # concatenates ref_codes + gen_codes and uses imprecise proportional
-                        # trimming, often leaving a snippet of reference audio at the start.
                         for result in self.model.generate(text, ref_audio=ref_audio, ref_text=ref_text, lang_code=lang, stream=True):
-                            audio_chunks.append(np.array(result.audio))
+                            audio_chunks.append(result.audio)
                             sample_rate = result.sample_rate
                     else:
-                        # Fallback: generate without voice cloning
                         for result in self.model.generate(text, lang_code=lang):
-                            audio_chunks.append(np.array(result.audio))
+                            audio_chunks.append(result.audio)
                             sample_rate = result.sample_rate
                 else:
-                    # No voice prompt, generate normally
                     for result in self.model.generate(text, lang_code=lang):
-                        audio_chunks.append(np.array(result.audio))
+                        audio_chunks.append(result.audio)
                         sample_rate = result.sample_rate
             except Exception as e:
-                # If voice cloning fails, try without it
                 logger.warning("Voice cloning failed, generating without voice prompt: %s", e)
                 for result in self.model.generate(text, lang_code=lang):
-                    audio_chunks.append(np.array(result.audio))
+                    audio_chunks.append(result.audio)
                     sample_rate = result.sample_rate
 
-            # Concatenate all chunks
+            # Concatenate all chunks on GPU (via MLX), transfer to CPU once
             if audio_chunks:
-                audio = np.concatenate([np.asarray(chunk, dtype=np.float32) for chunk in audio_chunks])
+                audio = np.array(mx.concatenate(audio_chunks, axis=0), dtype=np.float32)
             else:
-                # Fallback: empty audio
                 audio = np.array([], dtype=np.float32)
 
             return audio, sample_rate

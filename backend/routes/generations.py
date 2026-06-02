@@ -378,14 +378,14 @@ async def stream_speech(
     if effects_chain_config:
         from ..utils.effects import apply_effects
 
-        audio = apply_effects(audio, sample_rate, effects_chain_config)
+        audio = await asyncio.to_thread(apply_effects, audio, sample_rate, effects_chain_config)
 
     if data.normalize:
         from ..utils.audio import normalize_audio
 
-        audio = normalize_audio(audio)
+        audio = await asyncio.to_thread(normalize_audio, audio)
 
-    wav_bytes = tts.audio_to_wav_bytes(audio, sample_rate)
+    wav_bytes = await asyncio.to_thread(tts.audio_to_wav_bytes, audio, sample_rate)
 
     async def _wav_stream():
         try:
@@ -441,7 +441,7 @@ async def import_audio(
     target.write_bytes(audio_bytes)
 
     try:
-        audio, sr = load_audio(str(target))
+        audio, sr = await asyncio.to_thread(load_audio, str(target))
         duration = float(len(audio) / sr) if sr else 0.0
     except Exception as decode_err:
         try:

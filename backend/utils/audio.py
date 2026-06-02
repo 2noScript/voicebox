@@ -146,13 +146,9 @@ def trim_tts_output(
     n_frames = len(audio) // frame_len
     threshold_linear = 10 ** (silence_threshold_db / 20)
 
-    # Compute per-frame RMS
-    rms = np.array(
-        [
-            np.sqrt(np.mean(audio[i * frame_len : (i + 1) * frame_len] ** 2))
-            for i in range(n_frames)
-        ]
-    )
+    # Vectorized per-frame RMS computation
+    frames = audio[:n_frames * frame_len].reshape(-1, frame_len)
+    rms = np.sqrt(np.mean(frames ** 2, axis=1))
     is_speech = rms >= threshold_linear
 
     # Find first speech frame

@@ -190,10 +190,10 @@ def _get_gpu_status() -> str:
         if not compatible:
             label += " [UNSUPPORTED - see logs]"
         return label
-    elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-        return "MPS (Apple Silicon)"
     elif backend_type == "mlx":
         return "Metal (Apple Silicon via MLX)"
+    elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        return "MPS (Apple Silicon)"
 
     # Intel XPU (Arc / Data Center) via IPEX
     try:

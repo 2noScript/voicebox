@@ -104,10 +104,10 @@ async def health():
     gpu_type = None
     if has_cuda:
         gpu_type = f"CUDA ({torch.cuda.get_device_name(0)})"
-    elif has_mps:
-        gpu_type = "MPS (Apple Silicon)"
     elif backend_type == "mlx":
         gpu_type = "Metal (Apple Silicon via MLX)"
+    elif has_mps:
+        gpu_type = "MPS (Apple Silicon)"
     elif has_xpu:
         gpu_type = f"XPU ({xpu_name})"
     elif has_directml:

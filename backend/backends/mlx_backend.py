@@ -94,9 +94,11 @@ class MLXTTSBackend:
         is_cached = self._is_model_cached(model_size)
 
         with model_load_progress(model_name, is_cached):
+            import mlx.core as mx
             from mlx_audio.tts import load
 
             logger.info("Loading MLX TTS model %s...", model_size)
+            logger.info("MLX device: %s", mx.default_device())
 
             self.model = load(model_path)
 
@@ -229,7 +231,10 @@ class MLXTTSBackend:
                     sig = inspect.signature(self.model.generate)
                     if "ref_audio" in sig.parameters:
                         # Generate with voice cloning
-                        for result in self.model.generate(text, ref_audio=ref_audio, ref_text=ref_text, lang_code=lang):
+                        # Use stream=True to avoid the ICL non-streaming path which
+                        # concatenates ref_codes + gen_codes and uses imprecise proportional
+                        # trimming, often leaving a snippet of reference audio at the start.
+                        for result in self.model.generate(text, ref_audio=ref_audio, ref_text=ref_text, lang_code=lang, stream=True):
                             audio_chunks.append(np.array(result.audio))
                             sample_rate = result.sample_rate
                     else:

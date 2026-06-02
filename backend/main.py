@@ -41,5 +41,5 @@ if __name__ == "__main__":
         "backend.main:app",
         host=args.host,
         port=args.port,
-        reload=False,
+        reload=True,
     )

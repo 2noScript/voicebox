@@ -5,8 +5,7 @@
   "workspaces": [
     "app",
     "tauri",
-    "web",
-    "landing"
+    "web"
   ],
   "scripts": {
     "dev": "bun run setup:dev && cd tauri && bun run tauri dev",

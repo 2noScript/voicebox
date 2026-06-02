@@ -26,8 +26,8 @@ jobs:
         shell: bash
         run: |
           cd backend
-          python build_binary.py
-          python build_binary.py --shim
+          uv run python build_binary.py
+          uv run python build_binary.py --shim
 
           PLATFORM=$(rustc --print host-tuple)
           mkdir -p ../tauri/src-tauri/binaries

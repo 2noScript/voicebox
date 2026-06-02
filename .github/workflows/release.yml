@@ -111,8 +111,8 @@ jobs:
         shell: bash
         run: |
           cd backend
-          python build_binary.py
-          python build_binary.py --shim
+          uv run python build_binary.py
+          uv run python build_binary.py --shim
 
           # Get platform tuple
           PLATFORM=$(rustc --print host-tuple)
@@ -294,7 +294,7 @@ jobs:
 
       - name: Verify CUDA support in torch
         run: |
-          python -c "import torch; print(f'CUDA available in build: {torch.cuda.is_available()}'); print(f'CUDA version: {torch.version.cuda}')"
+          uv run python -c "import torch; print(f'CUDA available in build: {torch.cuda.is_available()}'); print(f'CUDA version: {torch.version.cuda}')"
 
       - name: Build CUDA server binary (onedir)
         shell: bash
@@ -305,12 +305,12 @@ jobs:
           # but not sm_120. Setting this env var causes torch.utils.cpp_extension
           # (and any JIT-compiled kernels) to target Blackwell GPUs as well.
           TORCH_CUDA_ARCH_LIST: "8.0;8.6;8.9;9.0;12.0+PTX"
-        run: python build_binary.py --cuda
+        run: uv run python build_binary.py --cuda
 
       - name: Package into server core + CUDA libs archives
         shell: bash
         run: |
-          python scripts/package_cuda.py \
+          uv run python scripts/package_cuda.py \
             backend/dist/voicebox-server-cuda/ \
             --output release-assets/ \
             --cuda-libs-version cu128-v1 \

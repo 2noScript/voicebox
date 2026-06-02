@@ -34,11 +34,6 @@ setup-python:
     uv pip install --no-deps chatterbox-tts
     # HumeAI TADA pins torch>=2.7,<2.8 which conflicts with our torch>=2.1
     uv pip install --no-deps hume-tada
-    # Apple Silicon: install MLX backend
-    if [ "$(uname -m)" = "arm64" ] && [ "$(uname)" = "Darwin" ]; then
-        echo "Detected Apple Silicon — installing MLX dependencies..."
-        uv sync --extra mlx
-    fi
     uv pip install git+https://github.com/QwenLM/Qwen3-TTS.git
     echo "Python environment ready."
 

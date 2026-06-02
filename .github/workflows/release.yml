@@ -79,7 +79,7 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          uv sync --frozen --project backend
+          uv sync --frozen
           uv pip install --no-deps chatterbox-tts
           uv pip install --no-deps hume-tada
           uv pip install pyinstaller
@@ -87,7 +87,7 @@ jobs:
       - name: Install MLX dependencies (Apple Silicon only)
         if: matrix.backend == 'mlx'
         run: |
-          uv sync --frozen --extra mlx --project backend
+          uv sync --frozen --extra mlx
           # mlx-audio>=0.3.1 and mlx-lm>=0.31.1 both declare transformers>=5.x,
           # which conflicts with our 4.57.x cap. The runtime APIs we use work
           # fine on transformers 4.57.x in practice (verified in dev), so install
@@ -282,7 +282,7 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          uv sync --frozen --project backend
+          uv sync --frozen
           uv pip install --no-deps chatterbox-tts
           uv pip install --no-deps hume-tada
           uv pip install pyinstaller

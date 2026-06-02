@@ -21,7 +21,7 @@ if ! curl -s http://localhost:17493/openapi.json > /dev/null 2>&1; then
     # Install dependencies if needed
     if ! python -c "import fastapi" 2>/dev/null; then
         echo "Installing backend dependencies..."
-        uv sync --frozen --project backend
+        uv sync --frozen
     fi
     
     # Start backend in background

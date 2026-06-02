@@ -7,7 +7,7 @@ backend_dir := "backend"
 tauri_dir := "tauri"
 app_dir := "app"
 web_dir := "web"
-venv := backend_dir / ".venv"
+venv := ".venv"
 
 # Platform-aware paths
 venv_bin := if os() == "windows" { venv / "Scripts" } else { venv / "bin" }
@@ -29,7 +29,6 @@ setup-python:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "Installing Python dependencies..."
-    cd {{ backend_dir }}
     uv sync
     # Chatterbox pins numpy<1.26 / torch==2.6 which break on Python 3.12+
     uv pip install --no-deps chatterbox-tts
@@ -46,7 +45,6 @@ setup-python:
 [windows]
 setup-python:
     Write-Host "Installing Python dependencies..."
-    Push-Location "{{ backend_dir }}"
     uv sync
     $gpus = Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name
     Write-Host "Detected GPUs: $($gpus -join ', ')"
@@ -65,7 +63,6 @@ setup-python:
     uv pip install --no-deps chatterbox-tts
     uv pip install --no-deps hume-tada
     uv pip install git+https://github.com/QwenLM/Qwen3-TTS.git
-    Pop-Location
     Write-Host "Python environment ready."
 
 # Install JavaScript dependencies

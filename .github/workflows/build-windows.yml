@@ -19,7 +19,7 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          uv sync --frozen --project backend
+          uv sync --frozen
           uv pip install pyinstaller
 
       - name: Build Python server

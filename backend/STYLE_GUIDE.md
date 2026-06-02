@@ -1,6 +1,6 @@
 # Python Style Guide
 
-Target: **Python 3.12+** | Formatter/Linter: **Ruff** | Config: `backend/pyproject.toml`
+Target: **Python 3.12+** | Formatter/Linter: **Ruff** | Config: `pyproject.toml` (root)
 
 This guide codifies the conventions used across the backend, and prescribes the target style for code written during the refactor (Phases 3-6). Existing code should be migrated incrementally -- don't reformat entire files in unrelated PRs.
 

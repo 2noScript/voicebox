@@ -17,7 +17,7 @@ The full phased guide lives at `docs/content/docs/developer/tts-engines.mdx`. **
 - Phase 1: Backend implementation (`TTSBackend` protocol)
 - Phase 2: Route and service integration (usually zero changes)
 - Phase 3: Frontend integration (5 files)
-- Phase 4: Dependencies (`backend/pyproject.toml`, justfile, CI, Docker)
+- Phase 4: Dependencies (`pyproject.toml`, justfile, CI, Docker)
 - Phase 5: PyInstaller bundling (`build_binary.py` + `server.py`)
 - Phase 6: Common upstream workarounds
 - Implementation checklist (gate between phases)
@@ -71,7 +71,7 @@ Follow the guide's phases in order. Key files to modify:
 - `app/src/components/ServerSettings/ModelManagement.tsx` — MODEL_DESCRIPTIONS
 
 **Dependencies (Phase 4):**
-- `backend/pyproject.toml` (`[project.dependencies]`)
+- `pyproject.toml` (`[project.dependencies]`)
 - `justfile` (setup-python, setup-python-release targets)
 - `.github/workflows/release.yml`
 - `Dockerfile` (if applicable)

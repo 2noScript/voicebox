@@ -202,7 +202,7 @@ backend/tests/
     └── server-<ts>.log
 ```
 
-The script uses only stdlib + `httpx` (or `requests`) + `sseclient-py` — all already in `backend/pyproject.toml` dependencies. No pytest to keep it invocable as a single command on fresh checkouts.
+The script uses only stdlib + `httpx` (or `requests`) + `sseclient-py` — all already in `pyproject.toml` dependencies. No pytest to keep it invocable as a single command on fresh checkouts.
 
 ## Safety & cleanup
 

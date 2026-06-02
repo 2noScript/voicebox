@@ -6,7 +6,7 @@
 ## Status
 
 ### Shipped (backend)
-- **`fastmcp` + `sse-starlette`** pinned in `backend/pyproject.toml`.
+- **`fastmcp` + `sse-starlette`** pinned in `pyproject.toml`.
 - **`backend/mcp_server/`** package with `server.py`, `tools.py`, `context.py`, `resolve.py`, `events.py`, `README.md`. Named `mcp_server` (not `mcp`) to sidestep a shadowing conflict with the installed `mcp` PyPI package that FastMCP imports internally.
 - **Streamable HTTP mount at `/mcp`** via FastMCP's `http_app(transport='http')`. Sub-app lifespan composed with Voicebox's own startup/shutdown through an `@asynccontextmanager lifespan=` in `backend/app.py` (migrated away from the deprecated `@app.on_event` handlers).
 - **Four MCP tools**, dot-named to match the landing and ecosystem convention:
@@ -149,7 +149,7 @@ Global default stays in `capture_settings.default_playback_voice_id` — no dupl
 | `backend/routes/__init__.py` | Register `mcp_bindings_router`, `speak_router`, `events_router`. |
 | `backend/routes/mcp_bindings.py` (new) | REST CRUD for bindings (list, upsert, delete). |
 | `backend/routes/events.py` (new) | `GET /events/speak` — `EventSourceResponse` subscribed to the events queue. |
-| `backend/pyproject.toml` | Add `fastmcp` and `sse-starlette` to `[project.dependencies]` |
+| `pyproject.toml` | Add `fastmcp` and `sse-starlette` to `[project.dependencies]` |
 | `backend/voicebox-server.spec` | `hiddenimports += ['mcp', 'mcp.server', 'fastmcp']` |
 | `backend/build_binary.py` | Second PyInstaller invocation for `voicebox-mcp.spec`; copy to `tauri/src-tauri/binaries/` with target-triple suffix |
 
@@ -296,7 +296,7 @@ PyInstaller spec keeps only `mcp`, `httpx`, `anyio`, `click` — target binary <
 
 ## Ordered task list (shortest path first)
 
-1. Add `fastmcp` + `sse-starlette` to `backend/pyproject.toml` dependencies; run `uv sync`.
+1. Add `fastmcp` + `sse-starlette` to `pyproject.toml` dependencies; run `uv sync`.
 2. Add `backend/mcp/{server,tools,context,resolve}.py` with the 4 tools registered as `voicebox.speak` etc. (no middleware yet — global default profile only).
 3. Migrate `app.py` to `lifespan=`; mount FastMCP at `/mcp`.
 4. **Milestone:** `npx @modelcontextprotocol/inspector http://127.0.0.1:17493/mcp` — call `voicebox.speak`, hear audio.

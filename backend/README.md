@@ -132,4 +132,4 @@ just test               # run pytest
 
 ## Dependencies
 
-Runtime dependencies are in `requirements.txt`. macOS-only MLX dependencies are in `requirements-mlx.txt`. Dev tools (ruff, pytest) are installed automatically by `just setup-python`.
+Runtime dependencies are declared in `pyproject.toml` (`[project.dependencies]`), with macOS-only MLX deps in `[project.optional-dependencies] mlx` and dev tools (ruff, pytest) in `[dependency-groups] dev`. Install with `uv sync` (or `uv sync --extra mlx` on Apple Silicon).

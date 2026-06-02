@@ -31,13 +31,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir --upgrade pip
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
-RUN pip install --no-cache-dir --prefix=/install --no-deps chatterbox-tts
-RUN pip install --no-cache-dir --prefix=/install --no-deps hume-tada
-RUN pip install --no-cache-dir --prefix=/install \
+# Install main dependencies from pyproject.toml via uv.lock
+COPY backend/pyproject.toml backend/uv.lock /build/
+WORKDIR /build
+RUN uv export --frozen --no-dev | uv pip install --system --prefix /install -r -
+RUN uv pip install --system --prefix /install --no-deps chatterbox-tts
+RUN uv pip install --system --prefix /install --no-deps hume-tada
+RUN uv pip install --system --prefix /install \
     git+https://github.com/QwenLM/Qwen3-TTS.git
 
 

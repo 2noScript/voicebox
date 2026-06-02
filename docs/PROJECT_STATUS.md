@@ -217,7 +217,7 @@ POST /generate
 
 - **HF XET progress**: Large files downloaded via `hf-xet` (HuggingFace's new transfer backend) report `n=0` in tqdm updates. Progress bars may appear stuck for large `.safetensors` files even though the download is proceeding. This is a known upstream limitation.
 - **Chatterbox Turbo upstream token bug**: `from_pretrained()` passes `token=os.getenv("HF_TOKEN") or True` which fails without a stored HF token. Our backend works around this by calling `snapshot_download(token=None)` + `from_local()`.
-- **chatterbox-tts must install with `--no-deps`**: It pins `numpy<1.26`, `torch==2.6.0`, `transformers==4.46.3` — all incompatible with our stack (Python 3.12, torch 2.10, transformers 4.57.3). Sub-deps listed explicitly in `requirements.txt`.
+- **chatterbox-tts must install with `--no-deps`**: It pins `numpy<1.26`, `torch==2.6.0`, `transformers==4.46.3` — all incompatible with our stack (Python 3.12, torch 2.10, transformers 4.57.3). Sub-deps listed explicitly in `backend/pyproject.toml`.
 - **Instruct parameter partially shipped** (#224, #303): Qwen CustomVoice (PR #328) now provides real instruct support via predefined speakers. Other backends still silently drop the instruct field — the UI exposes the field broadly but most engines ignore it. The floating generate box was patched to restore instruct for CustomVoice (commit `106aec4`).
 - **Streaming generation** only works for Qwen on MLX. Other engines use the non-streaming `/generate` endpoint.
 - **dicta-onnx** (Hebrew diacritization) not included — upstream Chatterbox bug requires `model_path` arg but calls `Dicta()` with none. Hebrew works fine without it.

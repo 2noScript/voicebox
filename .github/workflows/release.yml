@@ -67,40 +67,38 @@ jobs:
           echo "$(brew --prefix llvm@20)/bin" >> $GITHUB_PATH
           echo "LLVM_CONFIG=$(brew --prefix llvm@20)/bin/llvm-config" >> $GITHUB_ENV
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Setup Python and uv
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: "pip"
 
       - name: Install CPU-only PyTorch (Linux)
         if: contains(matrix.platform, 'ubuntu') || contains(matrix.platform, 'namespace')
         run: |
-          pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+          uv pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
 
       - name: Install Python dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install pyinstaller
-          pip install -r backend/requirements.txt
-          pip install --no-deps chatterbox-tts
-          pip install --no-deps hume-tada
+          uv sync --frozen --project backend
+          uv pip install --no-deps chatterbox-tts
+          uv pip install --no-deps hume-tada
+          uv pip install pyinstaller
 
       - name: Install MLX dependencies (Apple Silicon only)
         if: matrix.backend == 'mlx'
         run: |
-          pip install -r backend/requirements-mlx.txt
+          uv sync --frozen --extra mlx --project backend
           # mlx-audio>=0.3.1 and mlx-lm>=0.31.1 both declare transformers>=5.x,
           # which conflicts with our 4.57.x cap. The runtime APIs we use work
           # fine on transformers 4.57.x in practice (verified in dev), so install
           # them --no-deps. mlx-audio's other runtime deps (huggingface_hub,
-          # librosa, numpy, numba, pyloudnorm) are already in requirements.txt;
-          # miniaudio is in requirements-mlx.txt (needed by mlx_audio.stt,
+          # librosa, numpy, numba, pyloudnorm) are already in pyproject.toml;
+          # miniaudio is in mlx optional-dependencies (needed by mlx_audio.stt,
           # not transitively pulled by anything else — see issue #505); the
           # rest (sounddevice, protobuf, sentencepiece, pyyaml, jinja2) are
           # pulled in by other engines.
-          pip install --no-deps mlx-lm==0.31.1
-          pip install --no-deps mlx-audio==0.4.1
+          uv pip install --no-deps mlx-lm==0.31.1
+          uv pip install --no-deps mlx-audio==0.4.1
 
       - name: Build Python server (Linux/macOS)
         if: matrix.platform != 'windows-latest'
@@ -277,24 +275,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Setup Python and uv
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
-          cache: "pip"
 
       - name: Install Python dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install pyinstaller
-          pip install -r backend/requirements.txt
-          pip install --no-deps chatterbox-tts
-          pip install --no-deps hume-tada
+          uv sync --frozen --project backend
+          uv pip install --no-deps chatterbox-tts
+          uv pip install --no-deps hume-tada
+          uv pip install pyinstaller
 
       - name: Install PyTorch with CUDA 12.8
         run: |
-          pip install torch --index-url https://download.pytorch.org/whl/cu128 --force-reinstall --no-deps
-          pip install torchaudio --index-url https://download.pytorch.org/whl/cu128 --force-reinstall --no-deps
+          uv pip install torch --index-url https://download.pytorch.org/whl/cu128 --force-reinstall --no-deps
+          uv pip install torchaudio --index-url https://download.pytorch.org/whl/cu128 --force-reinstall --no-deps
 
       - name: Verify CUDA support in torch
         run: |

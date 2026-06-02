@@ -89,11 +89,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy application
-COPY backend/ /app/backend/
-COPY requirements.txt /app/
+COPY backend/pyproject.toml backend/ /app/backend/
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -e /app/backend
 RUN pip install --no-cache-dir git+https://github.com/QwenLM/Qwen3-TTS.git
 
 # Create data directory
@@ -127,9 +126,9 @@ RUN apt-get update && apt-get install -y \
     git build-essential && \
     rm -rf /var/lib/apt/lists/*
 
-COPY backend/requirements.txt .
+COPY backend/pyproject.toml .
 RUN pip install --no-cache-dir --target=/build/packages \
-    -r requirements.txt
+    -e .
 
 RUN pip install --no-cache-dir --target=/build/packages \
     git+https://github.com/QwenLM/Qwen3-TTS.git
@@ -179,11 +178,11 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Install PyTorch with CUDA support
-COPY backend/requirements.txt .
+COPY backend/pyproject.toml .
 RUN pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 
 # Install other dependencies
-RUN pip3 install -r requirements.txt
+RUN pip3 install -e .
 RUN pip3 install git+https://github.com/QwenLM/Qwen3-TTS.git
 
 COPY backend/ /app/backend/
@@ -227,11 +226,11 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Install PyTorch with ROCm support
-COPY backend/requirements.txt .
+COPY backend/pyproject.toml .
 RUN pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.0
 
 # Install other dependencies
-RUN pip3 install -r requirements.txt
+RUN pip3 install -e .
 RUN pip3 install git+https://github.com/QwenLM/Qwen3-TTS.git
 
 # Set ROCm environment variables

@@ -1,0 +1,81 @@
+# ============================================================
+# Dockerfile.build — Build voicebox-server Linux binaries
+# Produces CPU (--onefile) and CUDA (--onedir) variants
+#
+# Usage:
+#   docker build -t voicebox-builder -f Dockerfile.build .
+#   docker create --name voicebox-tmp voicebox-builder
+#   docker cp voicebox-tmp:/dist/voicebox-server ./dist/
+#   docker cp voicebox-tmp:/dist/voicebox-server-cuda ./dist/
+#   docker rm voicebox-tmp
+# ============================================================
+
+# === Stage 1: Build CPU binary ===
+FROM python:3.11-slim AS cpu-builder
+
+WORKDIR /build
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git build-essential ffmpeg curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir --upgrade pip
+
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+RUN pip install --no-cache-dir --no-deps chatterbox-tts
+RUN pip install --no-cache-dir --no-deps hume-tada
+RUN pip install --no-cache-dir git+https://github.com/QwenLM/Qwen3-TTS.git
+
+RUN pip install --no-cache-dir pyinstaller
+
+# Override with CPU-only torch
+RUN pip install --no-cache-dir --force-reinstall \
+    --index-url https://download.pytorch.org/whl/cpu \
+    torch torchaudio
+
+COPY backend/ ./backend/
+
+WORKDIR /build/backend
+RUN python build_binary.py
+
+
+# === Stage 2: Build CUDA binary ===
+FROM python:3.11-slim AS cuda-builder
+
+WORKDIR /build
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git build-essential ffmpeg curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir --upgrade pip
+
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+RUN pip install --no-cache-dir --no-deps chatterbox-tts
+RUN pip install --no-cache-dir --no-deps hume-tada
+RUN pip install --no-cache-dir git+https://github.com/QwenLM/Qwen3-TTS.git
+
+RUN pip install --no-cache-dir pyinstaller
+
+# Install CUDA torch explicitly
+RUN pip install --no-cache-dir --force-reinstall \
+    --index-url https://download.pytorch.org/whl/cu124 \
+    torch torchaudio
+
+COPY backend/ ./backend/
+
+WORKDIR /build/backend
+RUN python build_binary.py --cuda
+
+
+# === Stage 3: Collect output ===
+FROM busybox:glibc AS output
+
+COPY --from=cpu-builder /build/backend/dist/voicebox-server /dist/voicebox-server
+COPY --from=cuda-builder /build/backend/dist/voicebox-server-cuda /dist/voicebox-server-cuda
+
+CMD ["/bin/true"]

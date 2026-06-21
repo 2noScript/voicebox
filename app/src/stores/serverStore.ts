@@ -4,7 +4,8 @@ import { queryClient } from '@/lib/queryClient';
 
 interface ServerStore {
   serverUrl: string;
-  setServerUrl: (url: string) => void;
+  isServerUrlCustom: boolean;
+  setServerUrl: (url: string, isCustom?: boolean) => void;
 
   isConnected: boolean;
   setIsConnected: (connected: boolean) => void;
@@ -65,9 +66,10 @@ export const useServerStore = create<ServerStore>()(
   persist(
     (set, get) => ({
       serverUrl: getDefaultServerUrl(),
-      setServerUrl: (url) => {
+      isServerUrlCustom: false,
+      setServerUrl: (url, isCustom = false) => {
         const prev = get().serverUrl;
-        set({ serverUrl: url });
+        set({ serverUrl: url, isServerUrlCustom: isCustom });
         if (url !== prev) {
           invalidateAllServerData();
         }

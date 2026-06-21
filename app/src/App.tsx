@@ -135,9 +135,11 @@ function MainApp() {
   useEffect(() => {
     if (!platform.metadata.isTauri) {
       const serverUrl = getDefaultServerUrl();
-      const currentServerUrl = useServerStore.getState().serverUrl;
-      if (currentServerUrl !== serverUrl && isLoopbackVoiceboxServerUrl(currentServerUrl)) {
-        useServerStore.getState().setServerUrl(serverUrl);
+      const state = useServerStore.getState();
+      const currentServerUrl = state.serverUrl;
+      const isCustom = state.isServerUrlCustom;
+      if (!isCustom && currentServerUrl !== serverUrl && isLoopbackVoiceboxServerUrl(currentServerUrl)) {
+        state.setServerUrl(serverUrl, false);
       }
       setServerReady(true); // Web assumes server is running
       return;

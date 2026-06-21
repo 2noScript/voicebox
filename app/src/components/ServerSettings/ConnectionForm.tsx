@@ -54,7 +54,7 @@ export function ConnectionForm() {
   const { isDirty } = form.formState;
 
   function onSubmit(data: ConnectionFormValues) {
-    setServerUrl(data.serverUrl);
+    setServerUrl(data.serverUrl, true);
     form.reset(data);
     toast({
       title: 'Server URL updated',

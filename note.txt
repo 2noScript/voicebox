@@ -1,0 +1,10 @@
+from google.colab import drive
+drive.mount('/content/drive')
+
+import os
+
+CACHE_DIR = "/content/drive/MyDrive/.cache/huggingface"
+
+os.environ["HF_HOME"] = CACHE_DIR
+os.environ["HUGGINGFACE_HUB_CACHE"] = f"{CACHE_DIR}/hub"
+os.environ["TRANSFORMERS_CACHE"] = f"{CACHE_DIR}/transformers"

@@ -1,0 +1,9 @@
+services:
+  voicebox-fe:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    container_name: voicebox-fe
+    restart: unless-stopped
+    ports:
+      - "5173:80"
